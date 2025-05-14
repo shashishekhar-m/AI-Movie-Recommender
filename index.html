@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>AI Movie Recommender</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/script.js" defer></script>
+</head>
+
+<body>
+    <h1>🎬 AI Movie Recommender</h1>
+
+    <!-- Filter Form -->
+    <form method="POST">
+        Genre:
+        <select name="genre">
+            <option>All</option>
+            {% for genre in genres %}
+            <option value="{{ genre }}">{{ genre }}</option>
+            {% endfor %}
+        </select>
+
+        Language:
+        <select name="language">
+            <option>All</option>
+            {% for lang in languages %}
+            <option value="{{ lang }}">{{ lang }}</option>
+            {% endfor %}
+        </select>
+
+        Start Year: <input type="number" name="start_year" min="1900" max="2025">
+        End Year: <input type="number" name="end_year" min="1900" max="2025">
+        Min Runtime (min): <input type="number" name="runtime" min="0">
+
+        <button type="submit">Filter</button>
+        <button type="button" id="surpriseMeBtn">🎲 Surprise Me!</button>
+    </form>
+
+    <!-- Filtered Results -->
+    {% if filtered %}
+    {% if movies %}
+    <h2 style="margin-bottom: 20px;">Filtered Results</h2>
+    <div class="results" id="results">
+        {% for movie in movies %}
+        <div class="movie-box">
+            <h3>{{ movie[0] }} ({{ movie[3] }})</h3>
+            <p><strong>Language:</strong> {{ movie[2] }}</p>
+            <p><strong>Genre:</strong> {{ movie[5] }}</p>
+            <p><strong>Rating:</strong> {{ movie[6] }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p>No results found.</p>
+    {% endif %}
+    {% else %}
+    <div class="results" id="results"></div>
+    {% endif %}
+
+    <!-- Surprise Me result will also appear inside #results -->
+
+    <hr>
+
+    <!-- NLP Section -->
+    <h2>🤖 Describe your taste</h2>
+    <textarea id="nlp_input" rows="3" cols="50"
+        placeholder="e.g. I like time travel and mind-bending thrillers"></textarea>
+    <br>
+    <button onclick="recommendFromInput()">Get AI Recommendations</button>
+
+    <div id="nlpResults" style="margin-top: 20px;"></div>
+
+    <script>
+        async function recommendFromInput() {
+            const inputText = document.getElementById('nlp_input').value;
+
+            const response = await fetch('/nlp_recommend', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'  // ✅ MUST include this
+                },
+                body: JSON.stringify({ input_text: inputText })  // ✅ Match the key used in Flask
+            });
+
+            const results = await response.json();
+            const resultsDiv = document.getElementById("nlpResults");
+            resultsDiv.innerHTML = "";
+
+            if (!results || results.length === 0) {
+                resultsDiv.innerHTML = "<p>No recommendations found.</p>";
+            } else {
+                results.forEach(movie => {
+                    resultsDiv.innerHTML += `
+                    <div class="movie-box">
+                        <h3>${movie.primaryTitle} (${movie.startYear})</h3>
+                        <p>${movie.plot}</p>
+                        <small>Similarity: ${(movie.similarity * 100).toFixed(2)}%</small>
+                    </div>
+                `;
+                });
+            }
+        }
+    </script>
+
+</body>
+
+</html>
